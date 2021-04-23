@@ -1,0 +1,85 @@
+# Méthodologie mise en place pour l'insertion des données du RVLLP et des locaux professionels.
+
+Ce document à pour but d'expliciter la méthodologie mise en place pour inserer en base les données issues de la données dite du RVLLP(Révision des Valeurs Locatives des Locaux Professionels). Ces données sont disponibles en libre accès à partir du lien:
+* https://www.impots.gouv.fr/portail/revision-des-valeurs-locatives-des-locaux-professionnels.
+Une documentation de la données est disponible ici:
+* https://www.impots.gouv.fr/portail/professionnel/les-grands-principes-de-la-revision-des-valeurs-locatives-des-locaux-professionnels.
+
+## 1. Intégration des données du RVLLP.
+
+Les donnés du RVLLP permettent pour chaque section cadastrale de connaitre sont secteur de la taxe dite du RVVLP en complément des données tarifaire des locaux professionels, il est possible de connaitre le tarif de la RVLLP pas type de local et de secteur.
+
+Afin de clarifier l'intégration des données en base les requetes ont été divisées en plusieurs fichiers:
+* 1. <em>nomenclature_RVLLP.sql</em>: requête permettant d'intéger la nomenclature et les métadonnées des données issues du RVLLP.
+* 2. <em>structure_RVLLP.sql</em>: requête permettant de créer la table TA_RVLLP sur le schéma G_DGFIP. Cette table sert à acceuillir les données du RVLLP.
+* 3. <em>normalisation_RVLLP.sql</em>: requête permettant de normaliser les données issues du RVLLP.
+
+### 1.1. Phasage.
+1. Insertion de la nomenclature propre aux données du RVLLP
+2. Création de la table G_DGFIP.TA_RVLLP
+3. Normalisation des données du RVLLP
+
+### 1.2. Insertion de la nomenclature dans la base de données.
+1. Insertion de la source dans TA_SOURCE: RVLLP et Révision des valeurs locatives des locaux professionnels
+2. Insertion de la provenance dans TA_PROVENANCE: https://www.impots.gouv.fr/portail/revision-des-valeurs-locatives-des-locaux-professionnels et Données en téléchargement libre
+3. Insertion des données dans TA_DATE_ACQUISITION
+4. Insertion des données dans TA_ORGANISME: DGFIP et Direction Générale des Finances Publiques
+5. Insertion des données dans TA_METADONNEE
+6. Insertion des données dans la table G_GEO.TA_METADONNEE_RELATION_ORGANISME
+7. Insertion des libelles longs dans TA_LIBELLE_LONG
+8. Insertion de la famille dans TA_FAMILLE: RVLLP
+9. Insertion des relations dans TA_FAMILLE_LIBELLE: RVLLP et SECTEUR
+
+### 1.3. Création de la table G_DGFIP.TA_RVLLP.
+La table <em>G_DGFIP.TA_RVLLP</em> sert à regrouper les secteurs fiscaux de la taxe dite RVLLP(Revision des Valeurs Locatives des Locaux Professionnels
+
+| Colonne | Type | Description |
+|:----------|:-----|:-------------------------------------------------------------------------------------------------------------|
+|OBJECTID|NUMBER|Clé primaire de la table G_DGFIP.TA_RVLLP.|
+|FID_IDU|VARCHAR2|Clé étrangère vers la table SECTION_CADASTRALE pour connaitre la section concerné par le code section de la section RVLLP.|
+|FID_CODE_RVLLP|NUMBER|Clé étrangère vers la table TA_CODE pour connaitre le code section de la section RVLLP|
+|FID_METADONNEE|NUMBER|Clé étrangère vers la table TA_METADONNEE.|
+
+### 1.4. Normalisation des données du RVLLP.
+
+1. Import des données du RVLLP dans une table oracle temporaire à supprimer à la fin de la normalisation.
+2. Renommage des colonnes de la table des données d'import RVLLP
+* Code commune en code_commune; 
+* "Préfixe" en pre;
+* "Libellé de commune" en nom_commune
+3. Mise à jour du champs pre afin d'ajouter '000' aux lignes où la valeur est NULL
+4. Ajout d'une colonne code_com pour avoir les codes au type caracère et au format XXX
+5. Normalisation des données dans la table TA_RVLLP
+
+### 1.5. Observations et remarques
+
+* L'intérêt de la clé étrangère vers la table SECTION_CADASTRALE et que cela permet de spatialiser les données du RVLLP. Pour cela la normalisation ce fait à l'aide de deux jointures la première sur le code commune quand la meme secteur dit du RVLLP couvre toute la commune (une seule ligne dans la table du RVLLP) et une autre jointure sur le code IDU (concaténation du code_com au format XXX + PREFIXE + SECTION), voir la requete 4 dans le fichier normalisation des données du RVLLP.
+* Il manque des sections cadastrale dans le fichier des données du RVLLP fournit par la DGFIP.
+
+## 2. Insertion de la nomenclature données des locaux professionels.
+
+
+
+
+--------------------------------------------------------------------------------
+
+traitements réalisés actuellement:
+* récupération des données
+* correction du code commune pour ajouter pour mettre le code commune sous la forme 591XXX
+* attention aux préfixes de la colonne PRE qui correspondent aux communes fusionnées.
+
+
+Description des champs :
+* CODE_SEC: code de la section cadastrale DGFIP
+* CODE_COM: code de la commune au sens DGFIP c’est-à-dire DEP + Secteur fiscale + INSEE
+* NOM_COM: nom de commune en majuscule (sans accent et sans tiré) (Lille/Lomme/Hellemmes = LILLE)
+* RVLLP: numéro du secteur au sens de la taxe RVLLP
+* SOURCE: lien vers la donnée source
+
+
+Observations diverses:
+* La donnée va-t-elle être modifiée en base via des outils SIG ? Si oui lesquels ? => NON
+* La donnée va-t-elle être uniquement disponible en consultation ? Si oui via quel(s) outil(s) ? => OUI, via MelMap dans un premier temps (voir carto géo « métier » dans un second temps)
+* Y-a-t-il d’autre processus automatisé à mettre en place sur cette donnée (ex : calcul de champs automatique à la mise à jour de la donnée, attribution automatique du nom de la commune où se trouve la géométrie d’une entrée, etc.) => NON mais :
+** la donnée est à surveiller (1 fois par trimestre ?) pour s’assurer que les secteurs ne sont pas modifiés par MINISTÈRE DE L'ACTION ET DES COMPTES PUBLICS
+** le site fournit aussi des fichiers de « grilles tarifaires » et « coefficients de localisation / neutralisation » pour lesquels il y aura peut-être des jointures à faire si on fait des cartes ou une appli « métier » dédiée
