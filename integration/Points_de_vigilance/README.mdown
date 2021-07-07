@@ -1,0 +1,11 @@
+# Points de Vigilance
+
+Dossier contenant le code et la documentation concernant les points de vigilance.
+
+## Détails
+
+* Code de création des tables nécessaires aux points de vigilance ;
+* Code de suppression des tables des points de vigilance ;
+* Code des déclencheurs en lien avec les points de vigilance ;
+* Code du .bat permettant de créer tous les éléments nécessaires aux points de vigilance ;
+* Documentation
